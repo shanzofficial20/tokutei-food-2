@@ -7,116 +7,244 @@ const supabase = createClient(
   process.env.SUPABASE_SECRET_KEY
 );
 
-export async function POST(request) {
+function checkAdmin(request) {
+  const adminSecret = request.headers.get("x-admin-secret");
+  return adminSecret && adminSecret === process.env.ADMIN_SECRET;
+}
+
+function getPremiumDays(plan, amount) {
+  if (plan === "premium_3_months" || Number(amount) === 2500) {
+    return 90;
+  }
+
+  return 30;
+}
+
+export async function GET(request) {
   try {
-    const authHeader = request.headers.get("authorization");
-
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    if (!checkAdmin(request)) {
       return Response.json(
         {
           success: false,
-          message: "Kamu harus login dulu.",
+          message: "Admin secret salah.",
         },
         { status: 401 }
-      );
-    }
-
-    const token = authHeader.replace("Bearer ", "");
-
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser(token);
-
-    if (userError || !user) {
-      return Response.json(
-        {
-          success: false,
-          message: "Session login tidak valid.",
-        },
-        { status: 401 }
-      );
-    }
-
-    const formData = await request.formData();
-
-    const plan = formData.get("plan") || "premium_1_month";
-    const amount = Number(formData.get("amount") || 980);
-    const note = formData.get("note") || "";
-    const proof = formData.get("proof");
-
-    if (!proof) {
-      return Response.json(
-        {
-          success: false,
-          message: "Bukti transfer belum diupload.",
-        },
-        { status: 400 }
-      );
-    }
-
-    const fileName = proof.name || "proof";
-    const fileExt = fileName.split(".").pop() || "jpg";
-    const filePath = `${user.id}/${Date.now()}.${fileExt}`;
-
-    const arrayBuffer = await proof.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
-    const { error: uploadError } = await supabase.storage
-      .from("payment-proofs")
-      .upload(filePath, buffer, {
-        contentType: proof.type || "application/octet-stream",
-        upsert: false,
-      });
-
-    if (uploadError) {
-      console.error("UPLOAD ERROR:", uploadError);
-
-      return Response.json(
-        {
-          success: false,
-          message: "Gagal upload bukti transfer.",
-          error: uploadError.message,
-        },
-        { status: 500 }
       );
     }
 
     const { data, error } = await supabase
       .from("transfer_requests")
-      .insert({
-        user_id: user.id,
-        email: user.email,
-        plan,
-        amount,
-        status: "pending",
-        proof_path: filePath,
-        note,
-      })
-      .select()
-      .single();
+      .select("*")
+      .order("created_at", { ascending: false });
 
     if (error) {
-      console.error("INSERT TRANSFER REQUEST ERROR:", error);
-
       return Response.json(
         {
           success: false,
-          message: "Gagal menyimpan request transfer.",
+          message: "Gagal mengambil data transfer.",
           error: error.message,
         },
         { status: 500 }
       );
     }
 
+    const withSignedUrls = await Promise.all(
+      data.map(async (item) => {
+        if (!item.proof_path) return item;
+
+        const { data: signed } = await supabase.storage
+          .from("payment-proofs")
+          .createSignedUrl(item.proof_path, 60 * 10);
+
+        return {
+          ...item,
+          proof_url: signed?.signedUrl || null,
+        };
+      })
+    );
+
     return Response.json({
       success: true,
-      message: "Bukti transfer berhasil dikirim.",
-      request: data,
+      requests: withSignedUrls,
     });
   } catch (error) {
-    console.error("TRANSFER REQUEST ERROR:", error);
+    return Response.json(
+      {
+        success: false,
+        message: "Terjadi error server.",
+        error: error.message,
+      },
+      { status: 500 }
+    );
+  }
+}
 
+export async function POST(request) {
+  try {
+    if (!checkAdmin(request)) {
+      return Response.json(
+        {
+          success: false,
+          message: "Admin secret salah.",
+        },
+        { status: 401 }
+      );
+    }
+
+    const { id, action } = await request.json();
+
+    if (!id || !action) {
+      return Response.json(
+        {
+          success: false,
+          message: "ID dan action wajib ada.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const { data: transferRequest, error: findError } = await supabase
+      .from("transfer_requests")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (findError || !transferRequest) {
+      return Response.json(
+        {
+          success: false,
+          message: "Request transfer tidak ditemukan.",
+        },
+        { status: 404 }
+      );
+    }
+
+    if (action === "approve") {
+      const days = getPremiumDays(
+        transferRequest.plan,
+        transferRequest.amount
+      );
+
+      const { data: existingProfile, error: existingProfileError } =
+        await supabase
+          .from("profiles")
+          .select("premium_until")
+          .eq("id", transferRequest.user_id)
+          .maybeSingle();
+
+      if (existingProfileError) {
+        return Response.json(
+          {
+            success: false,
+            message: "Gagal mengecek profile user.",
+            error: existingProfileError.message,
+          },
+          { status: 500 }
+        );
+      }
+
+      const now = new Date();
+
+      const currentPremiumUntil = existingProfile?.premium_until
+        ? new Date(existingProfile.premium_until)
+        : null;
+
+      const startDate =
+        currentPremiumUntil && currentPremiumUntil > now
+          ? currentPremiumUntil
+          : now;
+
+      const premiumUntil = new Date(startDate);
+      premiumUntil.setDate(premiumUntil.getDate() + days);
+
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .upsert(
+          {
+            id: transferRequest.user_id,
+            email: transferRequest.email,
+            is_paid: true,
+            plan: "premium",
+            paid_at: now.toISOString(),
+            premium_until: premiumUntil.toISOString(),
+            payment_id: `yuucho-${transferRequest.id}`,
+          },
+          {
+            onConflict: "id",
+          }
+        );
+
+      if (profileError) {
+        return Response.json(
+          {
+            success: false,
+            message: "Gagal mengaktifkan premium.",
+            error: profileError.message,
+          },
+          { status: 500 }
+        );
+      }
+
+      const { error: updateError } = await supabase
+        .from("transfer_requests")
+        .update({
+          status: "approved",
+          reviewed_at: now.toISOString(),
+        })
+        .eq("id", id);
+
+      if (updateError) {
+        return Response.json(
+          {
+            success: false,
+            message: "Premium aktif, tapi gagal update status request.",
+            error: updateError.message,
+          },
+          { status: 500 }
+        );
+      }
+
+      return Response.json({
+        success: true,
+        message: `User berhasil diaktifkan Premium selama ${days} hari.`,
+        premiumUntil: premiumUntil.toISOString(),
+      });
+    }
+
+    if (action === "reject") {
+      const { error: updateError } = await supabase
+        .from("transfer_requests")
+        .update({
+          status: "rejected",
+          reviewed_at: new Date().toISOString(),
+        })
+        .eq("id", id);
+
+      if (updateError) {
+        return Response.json(
+          {
+            success: false,
+            message: "Gagal reject request.",
+            error: updateError.message,
+          },
+          { status: 500 }
+        );
+      }
+
+      return Response.json({
+        success: true,
+        message: "Request transfer ditolak.",
+      });
+    }
+
+    return Response.json(
+      {
+        success: false,
+        message: "Action tidak valid.",
+      },
+      { status: 400 }
+    );
+  } catch (error) {
     return Response.json(
       {
         success: false,

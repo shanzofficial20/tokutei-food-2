@@ -9,8 +9,8 @@ export default function UpgradePage() {
         <h1>Upgrade Premium Tokutei Food 2</h1>
 
         <p>
-          Akses semua soal CBT, latihan premium, flashcard, dan pembahasan untuk
-          persiapan Tokuteiginou 2 Makanan.
+          Pilih paket premium. Kamu bisa bayar otomatis dengan kartu kredit
+          lewat PAY.JP atau transfer manual lewat Yuucho.
         </p>
       </section>
 
@@ -25,7 +25,7 @@ export default function UpgradePage() {
           <div className="price">¥0</div>
 
           <ul>
-            <li>Akses 10 soal gratis</li>
+            <li>Akses soal gratis terbatas</li>
             <li>Skor otomatis</li>
             <li>Cocok untuk mencoba fitur</li>
           </ul>
@@ -40,7 +40,7 @@ export default function UpgradePage() {
 
           <h3>Premium 1 Bulan</h3>
 
-          <p className="small">Untuk latihan serius sebelum ujian.</p>
+          <p className="small">Aktif selama 30 hari.</p>
 
           <div className="price">¥980</div>
 
@@ -48,42 +48,53 @@ export default function UpgradePage() {
             <li>Akses semua soal premium</li>
             <li>Latihan CBT penuh</li>
             <li>Pembahasan jawaban</li>
-            <li>Riwayat skor latihan</li>
+            <li>Masa aktif 30 hari</li>
           </ul>
-         <Link href="/payment" className="primary">
-  Upgrade Premium
-</Link>
 
-<Link href="/bank-transfer" className="secondary">
-  Transfer Yuucho
-</Link>
-</div>
+          <Link
+            href="/payment?plan=premium_1_month&amount=980"
+            className="primary"
+          >
+            Bayar Kartu Kredit
+          </Link>
+
+          <Link
+            href="/bank-transfer?plan=premium_1_month&amount=980"
+            className="secondary"
+          >
+            Transfer Yuucho
+          </Link>
+        </div>
+
         <div className="feature-card">
           <div className="feature-icon">👑</div>
 
           <h3>Premium 3 Bulan</h3>
 
-          <p className="small">Untuk persiapan lebih panjang.</p>
+          <p className="small">Aktif selama 90 hari.</p>
 
           <div className="price">¥2,500</div>
 
           <ul>
-            <li>Akses semua soal</li>
+            <li>Akses semua soal premium</li>
             <li>Cocok untuk belajar bertahap</li>
             <li>Lebih hemat dari bulanan</li>
-            <li>Support update soal</li>
+            <li>Masa aktif 90 hari</li>
           </ul>
 
-          <Link href="/payment" className="primary">
-  Pilih Paket Ini
-</Link>
+          <Link
+            href="/payment?plan=premium_3_months&amount=2500"
+            className="primary"
+          >
+            Bayar Kartu Kredit
+          </Link>
 
-<Link
-  href="/bank-transfer?plan=premium_3_months&amount=2500"
-  className="secondary"
->
-  Transfer Yuucho
-</Link>
+          <Link
+            href="/bank-transfer?plan=premium_3_months&amount=2500"
+            className="secondary"
+          >
+            Transfer Yuucho
+          </Link>
         </div>
       </section>
 
@@ -91,21 +102,18 @@ export default function UpgradePage() {
         <h2>Cara upgrade premium</h2>
 
         <p>
-          Pembayaran sekarang sudah otomatis lewat PAY.JP. Setelah pembayaran
-          berhasil, sistem akan langsung mengubah akun kamu menjadi Premium.
+          Jika memakai kartu kredit, akun otomatis menjadi Premium setelah
+          pembayaran berhasil. Jika memakai Transfer Yuucho, akun akan menjadi
+          Premium setelah admin mengecek dan menyetujui bukti transfer.
         </p>
 
         <ol>
           <li>Login ke akun kamu.</li>
-          <li>Pilih paket premium.</li>
-          <li>Klik tombol Upgrade Premium.</li>
-          <li>Isi data kartu di halaman pembayaran.</li>
-          <li>Setelah sukses, akun otomatis menjadi Premium.</li>
+          <li>Pilih paket 1 bulan atau 3 bulan.</li>
+          <li>Pilih metode pembayaran.</li>
+          <li>Bayar sesuai metode yang dipilih.</li>
+          <li>Akun menjadi Premium sesuai masa aktif paket.</li>
         </ol>
-
-        <Link href="/payment" className="primary">
-          Bayar Sekarang
-        </Link>
       </section>
     </main>
   );

@@ -27,7 +27,7 @@ export default function Header() {
 
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, email, is_paid, plan")
+        .select("id, email, is_paid, plan, premium_until")
         .eq("id", session.user.id)
         .maybeSingle();
 
@@ -55,17 +55,28 @@ export default function Header() {
       loadUser();
     });
 
+    const refreshInterval = setInterval(() => {
+      loadUser();
+    }, 10000);
+
     return () => {
       subscription.unsubscribe();
+      clearInterval(refreshInterval);
     };
   }, [loadUser, supabase]);
 
+  const premiumUntil = profile?.premium_until
+    ? new Date(profile.premium_until)
+    : null;
+
   const isPremium =
-    profile?.is_paid === true ||
-    profile?.plan === "premium" ||
-    profile?.plan === "Premium";
+    profile?.is_paid === true && premiumUntil && premiumUntil > new Date();
 
   const accountText = loading ? "Loading..." : isPremium ? "Premium" : "Free";
+
+  const premiumDateText = premiumUntil
+    ? premiumUntil.toLocaleDateString("ja-JP")
+    : "-";
 
   return (
     <header
@@ -90,47 +101,39 @@ export default function Header() {
         }}
       >
         <Link
-  href="/"
-  style={{
-    display: "block",
-    textDecoration: "none",
-    backgroundColor: "white",
-    color: "rgb(17, 24, 39)",
-    padding: "0",
-    borderRadius: "0",
-  }}
->
-  <div
-    style={{
-      backgroundColor: "white",
-      color: "rgb(17, 24, 39)",
-    }}
-  >
-    <div
-      style={{
-        fontSize: "28px",
-        fontWeight: "900",
-        color: "rgb(17, 24, 39)",
-        lineHeight: "1.1",
-        display: "block",
-      }}
-    >
-      Tokutei Food 2
-    </div>
+          href="/"
+          className="tf-brand"
+          style={{
+            textDecoration: "none",
+            color: "rgb(17, 24, 39)",
+          }}
+        >
+          <div>
+            <div
+              className="tf-brand-title"
+              style={{
+                fontSize: "28px",
+                fontWeight: "900",
+                color: "rgb(17, 24, 39)",
+                lineHeight: "1.1",
+              }}
+            >
+              Tokutei Food 2
+            </div>
 
-    <div
-      style={{
-        marginTop: "6px",
-        fontSize: "15px",
-        fontWeight: "700",
-        color: "rgb(107, 114, 128)",
-        display: "block",
-      }}
-    >
-      Latihan CBT Tokuteiginou 2 Makanan
-    </div>
-  </div>
-</Link>
+            <div
+              className="tf-brand-subtitle"
+              style={{
+                marginTop: "6px",
+                fontSize: "15px",
+                fontWeight: "700",
+                color: "rgb(107, 114, 128)",
+              }}
+            >
+              Latihan CBT Tokuteiginou 2 Makanan
+            </div>
+          </div>
+        </Link>
 
         <nav
           style={{
@@ -149,7 +152,7 @@ export default function Header() {
               onClick={() => setTopicOpen(!topicOpen)}
               style={navButton}
             >
-              TOPIK ▼
+              TOPIK
             </button>
 
             {topicOpen && (
@@ -167,23 +170,43 @@ export default function Header() {
                   zIndex: 999,
                 }}
               >
-                <Link href="/teori" style={dropdownItem}>
+                <Link
+                  href="/teori"
+                  style={dropdownItem}
+                  onClick={() => setTopicOpen(false)}
+                >
                   Teori
                 </Link>
 
-                <Link href="/flashcard" style={dropdownItem}>
+                <Link
+                  href="/flashcard"
+                  style={dropdownItem}
+                  onClick={() => setTopicOpen(false)}
+                >
                   Flashcard
                 </Link>
 
-                <Link href="/cbt" style={dropdownItem}>
+                <Link
+                  href="/cbt"
+                  style={dropdownItem}
+                  onClick={() => setTopicOpen(false)}
+                >
                   Latihan CBT
                 </Link>
 
-                <Link href="/dashboard" style={dropdownItem}>
+                <Link
+                  href="/dashboard"
+                  style={dropdownItem}
+                  onClick={() => setTopicOpen(false)}
+                >
                   Dashboard
                 </Link>
 
-                <Link href="/upgrade" style={dropdownItem}>
+                <Link
+                  href="/upgrade"
+                  style={dropdownItem}
+                  onClick={() => setTopicOpen(false)}
+                >
                   Upgrade Premium
                 </Link>
               </div>
@@ -206,6 +229,7 @@ export default function Header() {
                 : "rgb(187, 247, 208)",
               color: isPremium ? "rgb(22, 101, 52)" : "rgb(21, 128, 61)",
             }}
+            title={isPremium ? `Premium sampai ${premiumDateText}` : "Akun Free"}
           >
             Akun: {accountText}
           </Link>
@@ -215,13 +239,14 @@ export default function Header() {
           type="button"
           onClick={() => setMenuOpen(!menuOpen)}
           style={{
-            width: "64px",
+            minWidth: "64px",
             height: "64px",
+            padding: "0 18px",
             borderRadius: "20px",
             border: "none",
             backgroundColor: "rgb(2, 6, 23)",
             color: "rgb(255, 255, 255)",
-            fontSize: "34px",
+            fontSize: "16px",
             fontWeight: "900",
             cursor: "pointer",
             display: "flex",
@@ -230,7 +255,7 @@ export default function Header() {
             lineHeight: 1,
           }}
         >
-          ☰
+          Menu
         </button>
       </div>
 
@@ -252,28 +277,80 @@ export default function Header() {
               gap: "10px",
             }}
           >
-            <Link href="/" style={mobileItem}>
+            <Link href="/" style={mobileItem} onClick={() => setMenuOpen(false)}>
               Home
             </Link>
 
-            <Link href="/teori" style={mobileItem}>
+            <Link
+              href="/login"
+              style={mobileItem}
+              onClick={() => setMenuOpen(false)}
+            >
+              Login
+            </Link>
+
+            <Link
+              href="/register"
+              style={mobileItem}
+              onClick={() => setMenuOpen(false)}
+            >
+              Daftar
+            </Link>
+
+            <Link
+              href="/teori"
+              style={mobileItem}
+              onClick={() => setMenuOpen(false)}
+            >
               Teori
             </Link>
 
-            <Link href="/flashcard" style={mobileItem}>
+            <Link
+              href="/flashcard"
+              style={mobileItem}
+              onClick={() => setMenuOpen(false)}
+            >
               Flashcard
             </Link>
 
-            <Link href="/cbt" style={mobileItem}>
+            <Link
+              href="/cbt"
+              style={mobileItem}
+              onClick={() => setMenuOpen(false)}
+            >
               CBT
             </Link>
 
-            <Link href="/upgrade" style={mobileItem}>
+            <Link
+              href="/dashboard"
+              style={mobileItem}
+              onClick={() => setMenuOpen(false)}
+            >
+              Dashboard
+            </Link>
+
+            <Link
+              href="/upgrade"
+              style={mobileItem}
+              onClick={() => setMenuOpen(false)}
+            >
               Upgrade Premium
             </Link>
 
-            <Link href="/payment" style={mobileItem}>
+            <Link
+              href="/payment"
+              style={mobileItem}
+              onClick={() => setMenuOpen(false)}
+            >
               Payment
+            </Link>
+
+            <Link
+              href="/bank-transfer"
+              style={mobileItem}
+              onClick={() => setMenuOpen(false)}
+            >
+              Transfer Yuucho
             </Link>
 
             <div
@@ -289,6 +366,17 @@ export default function Header() {
               }}
             >
               Status Akun: {accountText}
+              {isPremium && (
+                <div
+                  style={{
+                    marginTop: "6px",
+                    fontSize: "14px",
+                    fontWeight: "800",
+                  }}
+                >
+                  Aktif sampai: {premiumDateText}
+                </div>
+              )}
             </div>
           </div>
         </div>

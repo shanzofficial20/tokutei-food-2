@@ -623,3 +623,36 @@ ol {
 .account-badge:hover {
   background: #bbf7d0;
 }
+/* FIX HEADER LOGO BLANK / BLACK BOX */
+header .tf-brand {
+  background: transparent !important;
+  background-color: transparent !important;
+  color: rgb(17, 24, 39) !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+header .tf-brand * {
+  background: transparent !important;
+  background-color: transparent !important;
+  color: inherit !important;
+  box-shadow: none !important;
+}
+
+header .tf-brand-title {
+  color: rgb(17, 24, 39) !important;
+  font-size: 28px !important;
+  font-weight: 900 !important;
+  line-height: 1.1 !important;
+  display: block !important;
+}
+
+header .tf-brand-subtitle {
+  color: rgb(107, 114, 128) !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  display: block !important;
+  margin-top: 6px !important;
+}
