@@ -50,12 +50,14 @@ export default function UpgradePage() {
             <li>Pembahasan jawaban</li>
             <li>Riwayat skor latihan</li>
           </ul>
+         <Link href="/payment" className="primary">
+  Upgrade Premium
+</Link>
 
-          <Link href="/payment" className="primary">
-            Upgrade Premium
-          </Link>
-        </div>
-
+<Link href="/bank-transfer" className="secondary">
+  Transfer Yuucho
+</Link>
+</div>
         <div className="feature-card">
           <div className="feature-icon">👑</div>
 
@@ -73,8 +75,15 @@ export default function UpgradePage() {
           </ul>
 
           <Link href="/payment" className="primary">
-            Pilih Paket Ini
-          </Link>
+  Pilih Paket Ini
+</Link>
+
+<Link
+  href="/bank-transfer?plan=premium_3_months&amount=2500"
+  className="secondary"
+>
+  Transfer Yuucho
+</Link>
         </div>
       </section>
 
