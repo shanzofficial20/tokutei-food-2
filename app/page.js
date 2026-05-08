@@ -49,9 +49,9 @@ export default function UpgradePage() {
               <li>Riwayat skor latihan</li>
             </ul>
 
-            <Link href="/payment" className="primary">
-              Upgrade Premium
-            </Link>
+            <Link href="/upgrade" className="primary">
+  Upgrade Premium
+</Link>
           </div>
 
           <div className="feature-card">
@@ -67,9 +67,9 @@ export default function UpgradePage() {
               <li>Support update soal</li>
             </ul>
 
-            <Link href="/payment" className="primary">
-              Pilih Paket Ini
-            </Link>
+           <Link href="/upgrade" className="primary">
+  Pilih Paket Ini
+</Link>
           </div>
         </div>
       </section>
