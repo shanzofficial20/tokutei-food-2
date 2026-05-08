@@ -7,7 +7,6 @@ import { createBrowserSupabase } from "@/lib/supabase-browser";
 export default function Header() {
   const supabase = useMemo(() => createBrowserSupabase(), []);
 
-  const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -17,39 +16,28 @@ export default function Header() {
     try {
       setLoading(true);
 
-      const { data: sessionData, error: sessionError } =
-        await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
-      if (sessionError) {
-        console.error("SESSION ERROR:", sessionError);
-        setSession(null);
+      if (!session?.user?.id) {
         setProfile(null);
         return;
       }
 
-      const currentSession = sessionData?.session || null;
-      setSession(currentSession);
-
-      if (!currentSession?.user?.id) {
-        setProfile(null);
-        return;
-      }
-
-      const userId = currentSession.user.id;
-
-      const { data: profileData, error: profileError } = await supabase
+      const { data, error } = await supabase
         .from("profiles")
-        .select("id, email, is_paid, plan, paid_at, payment_id")
-        .eq("id", userId)
+        .select("id, email, is_paid, plan")
+        .eq("id", session.user.id)
         .maybeSingle();
 
-      if (profileError) {
-        console.error("PROFILE ERROR:", profileError);
+      if (error) {
+        console.error("PROFILE ERROR:", error);
         setProfile(null);
         return;
       }
 
-      setProfile(profileData);
+      setProfile(data);
     } catch (error) {
       console.error("LOAD USER ERROR:", error);
       setProfile(null);
@@ -67,28 +55,8 @@ export default function Header() {
       loadUser();
     });
 
-    const refreshInterval = setInterval(() => {
-      loadUser();
-    }, 5000);
-
-    const handleFocus = () => {
-      loadUser();
-    };
-
-    const handleVisibility = () => {
-      if (!document.hidden) {
-        loadUser();
-      }
-    };
-
-    window.addEventListener("focus", handleFocus);
-    document.addEventListener("visibilitychange", handleVisibility);
-
     return () => {
       subscription.unsubscribe();
-      clearInterval(refreshInterval);
-      window.removeEventListener("focus", handleFocus);
-      document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, [loadUser, supabase]);
 
@@ -97,24 +65,24 @@ export default function Header() {
     profile?.plan === "premium" ||
     profile?.plan === "Premium";
 
-  const accountText = loading ? "Mengecek..." : isPremium ? "Premium" : "Free";
+  const accountText = loading ? "Loading..." : isPremium ? "Premium" : "Free";
 
   return (
     <header
       style={{
         width: "100%",
-        backgroundColor: "white",
-        borderBottom: "1px solid #e5e7eb",
+        backgroundColor: "rgb(255, 255, 255)",
+        borderBottom: "1px solid rgb(229, 231, 235)",
         position: "sticky",
         top: 0,
-        zIndex: 50,
+        zIndex: 100,
       }}
     >
       <div
         style={{
           maxWidth: "1280px",
           margin: "0 auto",
-          padding: "22px 32px",
+          padding: "22px 28px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -122,35 +90,47 @@ export default function Header() {
         }}
       >
         <Link
-          href="/"
-          style={{
-            textDecoration: "none",
-            color: "#111827",
-          }}
-        >
-          <div>
-            <h1
-              style={{
-                fontSize: "28px",
-                fontWeight: "900",
-                margin: 0,
-                lineHeight: 1.1,
-              }}
-            >
-              Tokutei Food 2
-            </h1>
-            <p
-              style={{
-                margin: "6px 0 0",
-                color: "#6b7280",
-                fontSize: "16px",
-                fontWeight: "700",
-              }}
-            >
-              Latihan CBT Tokuteiginou 2 Makanan
-            </p>
-          </div>
-        </Link>
+  href="/"
+  style={{
+    display: "block",
+    textDecoration: "none",
+    backgroundColor: "white",
+    color: "rgb(17, 24, 39)",
+    padding: "0",
+    borderRadius: "0",
+  }}
+>
+  <div
+    style={{
+      backgroundColor: "white",
+      color: "rgb(17, 24, 39)",
+    }}
+  >
+    <div
+      style={{
+        fontSize: "28px",
+        fontWeight: "900",
+        color: "rgb(17, 24, 39)",
+        lineHeight: "1.1",
+        display: "block",
+      }}
+    >
+      Tokutei Food 2
+    </div>
+
+    <div
+      style={{
+        marginTop: "6px",
+        fontSize: "15px",
+        fontWeight: "700",
+        color: "rgb(107, 114, 128)",
+        display: "block",
+      }}
+    >
+      Latihan CBT Tokuteiginou 2 Makanan
+    </div>
+  </div>
+</Link>
 
         <nav
           style={{
@@ -159,7 +139,7 @@ export default function Header() {
             gap: "14px",
           }}
         >
-          <Link href="/" style={navButtonStyle}>
+          <Link href="/" style={navButton}>
             Home
           </Link>
 
@@ -167,7 +147,7 @@ export default function Header() {
             <button
               type="button"
               onClick={() => setTopicOpen(!topicOpen)}
-              style={navButtonStyle}
+              style={navButton}
             >
               TOPIK ▼
             </button>
@@ -176,47 +156,55 @@ export default function Header() {
               <div
                 style={{
                   position: "absolute",
-                  top: "60px",
+                  top: "64px",
                   left: 0,
-                  minWidth: "240px",
-                  backgroundColor: "white",
-                  border: "1px solid #e5e7eb",
-                  borderRadius: "16px",
-                  boxShadow: "0 20px 40px rgba(15, 23, 42, 0.12)",
-                  padding: "10px",
-                  zIndex: 100,
+                  width: "260px",
+                  padding: "12px",
+                  backgroundColor: "rgb(255, 255, 255)",
+                  border: "1px solid rgb(229, 231, 235)",
+                  borderRadius: "18px",
+                  boxShadow: "0 20px 40px rgba(15, 23, 42, 0.14)",
+                  zIndex: 999,
                 }}
               >
-                <Link href="/#materi" style={dropdownItemStyle}>
-                  Materi
+                <Link href="/teori" style={dropdownItem}>
+                  Teori
                 </Link>
-                <Link href="/#haccp" style={dropdownItemStyle}>
-                  HACCP / 食品衛生
+
+                <Link href="/flashcard" style={dropdownItem}>
+                  Flashcard
                 </Link>
-                <Link href="/#quality" style={dropdownItemStyle}>
-                  品質管理
+
+                <Link href="/cbt" style={dropdownItem}>
+                  Latihan CBT
                 </Link>
-                <Link href="/#production" style={dropdownItemStyle}>
-                  生産管理
+
+                <Link href="/dashboard" style={dropdownItem}>
+                  Dashboard
                 </Link>
-                <Link href="/#safety" style={dropdownItemStyle}>
-                  労働安全
+
+                <Link href="/upgrade" style={dropdownItem}>
+                  Upgrade Premium
                 </Link>
               </div>
             )}
           </div>
 
-          <Link href="/cbt" style={navButtonStyle}>
+          <Link href="/cbt" style={navButton}>
             CBT
           </Link>
 
           <Link
-            href={isPremium ? "/cbt" : "/upgrade"}
+            href={isPremium ? "/dashboard" : "/upgrade"}
             style={{
-              ...accountBadgeStyle,
-              backgroundColor: isPremium ? "#dcfce7" : "#ecfdf5",
-              borderColor: isPremium ? "#86efac" : "#bbf7d0",
-              color: isPremium ? "#166534" : "#15803d",
+              ...premiumBadge,
+              backgroundColor: isPremium
+                ? "rgb(220, 252, 231)"
+                : "rgb(236, 253, 245)",
+              borderColor: isPremium
+                ? "rgb(134, 239, 172)"
+                : "rgb(187, 247, 208)",
+              color: isPremium ? "rgb(22, 101, 52)" : "rgb(21, 128, 61)",
             }}
           >
             Akun: {accountText}
@@ -231,14 +219,15 @@ export default function Header() {
             height: "64px",
             borderRadius: "20px",
             border: "none",
-            backgroundColor: "#020617",
-            color: "white",
+            backgroundColor: "rgb(2, 6, 23)",
+            color: "rgb(255, 255, 255)",
             fontSize: "34px",
             fontWeight: "900",
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            lineHeight: 1,
           }}
         >
           ☰
@@ -250,36 +239,53 @@ export default function Header() {
           style={{
             maxWidth: "1280px",
             margin: "0 auto",
-            padding: "0 32px 22px",
+            padding: "0 28px 24px",
           }}
         >
           <div
             style={{
-              backgroundColor: "#f8fafc",
-              border: "1px solid #e5e7eb",
+              backgroundColor: "rgb(248, 250, 252)",
+              border: "1px solid rgb(229, 231, 235)",
               borderRadius: "18px",
-              padding: "16px",
+              padding: "14px",
               display: "grid",
               gap: "10px",
             }}
           >
-            <Link href="/" style={mobileMenuItemStyle}>
+            <Link href="/" style={mobileItem}>
               Home
             </Link>
-            <Link href="/upgrade" style={mobileMenuItemStyle}>
-              Upgrade Premium
+
+            <Link href="/teori" style={mobileItem}>
+              Teori
             </Link>
-            <Link href="/payment" style={mobileMenuItemStyle}>
-              Pembayaran
+
+            <Link href="/flashcard" style={mobileItem}>
+              Flashcard
             </Link>
-            <Link href="/cbt" style={mobileMenuItemStyle}>
+
+            <Link href="/cbt" style={mobileItem}>
               CBT
             </Link>
+
+            <Link href="/upgrade" style={mobileItem}>
+              Upgrade Premium
+            </Link>
+
+            <Link href="/payment" style={mobileItem}>
+              Payment
+            </Link>
+
             <div
               style={{
-                ...mobileMenuItemStyle,
-                backgroundColor: isPremium ? "#dcfce7" : "#fef3c7",
-                color: isPremium ? "#166534" : "#92400e",
+                padding: "14px 16px",
+                borderRadius: "12px",
+                backgroundColor: isPremium
+                  ? "rgb(220, 252, 231)"
+                  : "rgb(254, 243, 199)",
+                color: isPremium ? "rgb(22, 101, 52)" : "rgb(146, 64, 14)",
+                fontSize: "16px",
+                fontWeight: "900",
               }}
             >
               Status Akun: {accountText}
@@ -291,15 +297,15 @@ export default function Header() {
   );
 }
 
-const navButtonStyle = {
+const navButton = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
   minHeight: "54px",
   padding: "0 28px",
   borderRadius: "18px",
-  backgroundColor: "#f1f5f9",
-  color: "#111827",
+  backgroundColor: "rgb(241, 245, 249)",
+  color: "rgb(17, 24, 39)",
   textDecoration: "none",
   fontSize: "18px",
   fontWeight: "900",
@@ -307,7 +313,7 @@ const navButtonStyle = {
   cursor: "pointer",
 };
 
-const accountBadgeStyle = {
+const premiumBadge = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
@@ -320,22 +326,23 @@ const accountBadgeStyle = {
   border: "1px solid",
 };
 
-const dropdownItemStyle = {
+const dropdownItem = {
   display: "block",
-  padding: "12px 14px",
-  borderRadius: "10px",
-  color: "#111827",
+  padding: "13px 14px",
+  borderRadius: "12px",
+  color: "rgb(17, 24, 39)",
+  backgroundColor: "rgb(255, 255, 255)",
   textDecoration: "none",
-  fontSize: "15px",
-  fontWeight: "700",
+  fontSize: "16px",
+  fontWeight: "800",
 };
 
-const mobileMenuItemStyle = {
+const mobileItem = {
   display: "block",
   padding: "14px 16px",
   borderRadius: "12px",
-  backgroundColor: "white",
-  color: "#111827",
+  backgroundColor: "rgb(255, 255, 255)",
+  color: "rgb(17, 24, 39)",
   textDecoration: "none",
   fontSize: "16px",
   fontWeight: "800",
